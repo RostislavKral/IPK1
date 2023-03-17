@@ -21,12 +21,12 @@ void sigtermHandler(int a)
 
 
 
-void tcp()
+void tcp(const std::string& hostname, int port)
 {
     int sockfd;
     struct sockaddr_in server_addr;
     char server_message[2000];
-    std::string client_message, check;
+    std::string client_message, check, foo;
 
     // Clean buffers:
     memset(server_message,'\0',sizeof(server_message));
@@ -39,19 +39,16 @@ void tcp()
         exit(-1);
     }
 
-    printf("Socket created successfully\n");
-
     // Set port and IP the same as server-side:
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(2023);
-    server_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = inet_addr(hostname.c_str());
 
     // Send connection request to server:
     if(connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
         printf("Unable to connect\n");
         exit(-1);
     }
-    printf("Connected with server successfully\n");
 
     while(true) {
         // Get input from the user:
@@ -61,29 +58,29 @@ void tcp()
         std::getline(std::cin, client_message);
         client_message = client_message + '\n';
 
-        // Send the message to server:
         if (send(sockfd, client_message.c_str(), client_message.length(), 0) < 0) {
             printf("Unable to send message\n");
             exit(-1);
         }
 
-        // Receive the server's response:
-        if (recv(sockfd, server_message, sizeof(server_message), 0) < 0) {
-            printf("Error while receiving server's msg\n");
-            exit(-1);
-        }
+        do {
+            memset(server_message, '\0', sizeof(server_message));
 
-        printf("Server's response: %s\n", server_message);
-        check = server_message;
-        strcpy(server_message, "");
-        // std::cout << check;
+            if (recv(sockfd, server_message, sizeof(server_message), 0) < 0) {
+                printf("Error while receiving server's msg\n");
+                exit(-1);
+            }
 
-        if(std::strcmp(check.c_str(), "BYE") == 0) printf("BYE WAS CHECKCED");
+            check.append(server_message);
 
+        } while (check.find('\n') == std::string::npos);
+
+         std::cout << check;
+
+        if(check == "BYE\n") break;
+        check = "";
     }
-    // Close the socket:
     close(sockfd);
-
 }
 
 
@@ -201,7 +198,7 @@ int main(int argc,char *argv[]) {
     }
     else
     {
-        tcp();
+        tcp(host, port);
     }
 
     return 0;
