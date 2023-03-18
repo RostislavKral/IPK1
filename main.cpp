@@ -1,73 +1,87 @@
+/**
+ * @Author: Rostislav Kral xkralr06
+ *
+ *
+ * */
+
+
 #include <bits/stdc++.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <signal.h>
-#include <unistd.h>
-#include <algorithm>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <cstring>
 
+// Made it global due to sigtint handler
 int sockfd;
 
-void sigtermHandler(int a)
-{
+
+// Closing opened socket and exiting program
+void sigtermHandler(int a) {
     close(sockfd);
     printf("Exit");
     exit(0);
 }
 
 
-
-void tcp(const std::string& hostname, int port)
-{
-    int sockfd;
+void tcp(const std::string &hostname, int port) {
+    // server setup
     struct sockaddr_in server_addr;
-    char server_message[2000];
+
+    //buffer
+    char server_message[1024];
+
     std::string client_message, check, foo;
 
     // Clean buffers:
-    memset(server_message,'\0',sizeof(server_message));
+    memset(server_message, '\0', sizeof(server_message));
 
     // Create socket:
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(sockfd < 0){
+    //Was socket creation successful?
+    if (sockfd < 0) {
         printf("Unable to create socket\n");
         exit(-1);
     }
 
-    // Set port and IP the same as server-side:
+    // Server setup
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr(hostname.c_str());
 
     // Send connection request to server:
-    if(connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
+    if (connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
         printf("Unable to connect\n");
         exit(-1);
     }
 
-    while(true) {
-        // Get input from the user:
-        printf("Enter message: ");
+    while (true) {
+        //clearing cache of stdin objects
         std::cin.clear();
         std::cin.sync();
-        std::getline(std::cin, client_message);
-        client_message = client_message + '\n';
 
+
+        // Get input from the user
+        std::getline(std::cin, client_message);
+        client_message.append("\n"); //last char must be \n to end the line
+
+
+        //Trying to send socket to server
         if (send(sockfd, client_message.c_str(), client_message.length(), 0) < 0) {
-            printf("Unable to send message\n");
+            perror("UNABLE TO SEND MESSAGE");
             exit(-1);
         }
 
         do {
+            //null the buffer
             memset(server_message, '\0', sizeof(server_message));
 
+            //Try to get the message from the server
             if (recv(sockfd, server_message, sizeof(server_message), 0) < 0) {
-                printf("Error while receiving server's msg\n");
+                perror("Error while receiving server's msg\n");
                 exit(-1);
             }
 
@@ -75,75 +89,76 @@ void tcp(const std::string& hostname, int port)
 
         } while (check.find('\n') == std::string::npos);
 
-         std::cout << check;
+        std::cout << check;
 
-        if(check == "BYE\n") break;
+        if (check == "BYE\n") break;
         check = "";
     }
     close(sockfd);
 }
 
 
-void udp(const std::string& hostname, int port)
-{
+void udp(const std::string &hostname, int port) {
+
+    //server message
     char buffer[1024];
 
-    size_t input_size = 0;
+    // client message
     std::string hello;
     struct sockaddr_in servaddr;
 
-    //std::cout << hello << std::endl;
-    // Creating socket file descriptor
+    int n;
+    socklen_t len;
+
+    // Create socket
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket creation failed");
+        perror("socket create failed");
         exit(EXIT_FAILURE);
     }
-    // Filling server information
-
-    /*if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
-     {
-         printf("\n Error : Connect Failed \n");
-         exit(0);
-     }*/
 
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
     servaddr.sin_addr.s_addr = inet_addr(hostname.c_str());
 
-    int n;
-    socklen_t len;
 
-    //hello = "\\x00\\x07(+ 1 1)";
-    //hello = to_ascii(hello);
-    //hello.insert(0, "\0");
 
-    while(true) {
+    while (true) {
+        hello = "";
+        memset(buffer, ' ', sizeof(buffer));
+
         std::cin.clear();
         std::cin.sync();
         std::getline(std::cin, hello);
-        // std::cout << hello;
+
         char msg[hello.length() + 2];
         msg[0] = '\0';
         msg[1] = (char) hello.length();
         for (int i = 2; i < hello.length() + 2; i++) {
-            //  std::cout << hello[i];
             msg[i] = hello[i - 2];
         }
 
-        //std::cout << hello.length();
-        sendto(sockfd, msg, hello.length() + 2,
-               MSG_CONFIRM, (const struct sockaddr *) &servaddr,
-               sizeof(servaddr));
-        //std::cout << "Hello message sent." << std::endl;
+        if (sendto(sockfd, msg, hello.length() + 2,
+                   MSG_CONFIRM, (const struct sockaddr *) &servaddr,
+                   sizeof(servaddr)) < 0) {
+            perror("SEND:");
+        }
 
         n = recvfrom(sockfd, (char *) buffer, 1024,
                      MSG_WAITALL, (struct sockaddr *) &servaddr,
                      &len);
-        buffer[n] = '\0';
 
-        //std::cout << buffer[3] << std::endl;
-        for (int i = 0; i < n; i++) {
+        if (n < 0) {
+            perror("RECEIVE:");
+        }
+
+        if (buffer[1] == 0) {
+            std::cout << "OK: ";
+        } else {
+            std::cout << "ERR: ";
+        }
+
+        for (int i = 3; i < n; i++) {
             std::cout << buffer[i];
         }
         std::cout << std::endl;
@@ -153,19 +168,22 @@ void udp(const std::string& hostname, int port)
 }
 
 
-int main(int argc,char *argv[]) {
+int main(int argc, char *argv[]) {
 
     int opt, port;
     std::string mode, host;
     // std::cout<< argc;
-    if(argc != 7) { std::cout<<"Invalid number of arguments";
-        exit(-1);}
+    if (argc != 7) {
+        std::cout << "Invalid number of arguments";
+        exit(-1);
+    }
 
     signal(SIGTERM, sigtermHandler);
+    signal(SIGINT, sigtermHandler);
 
-    while((opt = getopt(argc, argv, "h:p:m:")) != -1)
-    {
-        switch(opt) {
+
+    while ((opt = getopt(argc, argv, "h:p:m:")) != -1) {
+        switch (opt) {
             case 'h':
                 host = optarg;
                 break;
@@ -173,7 +191,11 @@ int main(int argc,char *argv[]) {
                 //TODO: validate port
                 port = atoi(optarg);
 
-                //  std::cout << port;
+                if(port < 1023) {
+                    std::cout << "Invalid port number";
+                    exit(-1);
+                }
+                //std::cout << port;
                 break;
             case 'm':
                 mode = optarg;
@@ -192,12 +214,9 @@ int main(int argc,char *argv[]) {
     }
 
 
-    if(mode == "udp")
-    {
+    if (mode == "udp") {
         udp(host, port);
-    }
-    else
-    {
+    } else {
         tcp(host, port);
     }
 
