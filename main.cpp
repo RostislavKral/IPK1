@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     std::string mode, host;
     // std::cout<< argc;
     if (argc != 7) {
-        std::cout << "Invalid number of arguments";
+        std::cout << "Invalid number of arguments\nUsage: ipkcpc -h <host> -p <port> -m <mode>";
         exit(-1);
     }
 
@@ -201,12 +201,12 @@ int main(int argc, char *argv[]) {
                 mode = optarg;
 
                 if (mode != "udp" && mode != "tcp") {
-                    std::cout << "Invalid mode";
+                    std::cout << "Invalid mode\nUsage: ipkcpc -h <host> -p <port> -m <mode>";
                     exit(-1);
                 }
                 break;
             default:
-                printf("error");
+                printf("Usage: ipkcpc -h <host> -p <port> -m <mode>");
                 exit(-1);
                 break;
         }
