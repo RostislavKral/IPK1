@@ -12,6 +12,7 @@
 - Make
 - Lze spustit pouze na linuxovém prostředí např. (Debian based, CentOS aj.)
 - Má pouze jeden soubor se zdrojovým kódem
+- Licence GPL3
 ---
 ## Průběh programu
 
