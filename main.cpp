@@ -108,7 +108,7 @@ void udp(const std::string &hostname, int port) {
     struct sockaddr_in servaddr;
 
     int n;
-    socklen_t len;
+    socklen_t len = sizeof(socklen_t);
 
     // Create socket
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -124,6 +124,7 @@ void udp(const std::string &hostname, int port) {
 
 
     while (true) {
+        n = 0;
         hello = "";
         memset(buffer, ' ', sizeof(buffer));
 
