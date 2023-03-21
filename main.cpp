@@ -28,7 +28,11 @@ void sigtermHandler(int a) {
             perror("UNABLE TO SEND MESSAGE");
             exit(-1);
         }
+
+        std::cout << "BYE";
     }
+
+
 
     close(sockfd);
 
@@ -189,6 +193,8 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
+
+    //Handlers for exiting program via signals
     signal(SIGTERM, sigtermHandler);
     signal(SIGINT, sigtermHandler);
 
