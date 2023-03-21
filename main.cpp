@@ -16,12 +16,22 @@
 
 // Made it global due to sigtint handler
 int sockfd;
+std::string mode;
 
 
 // Closing opened socket and exiting program
 void sigtermHandler(int a) {
+
+
+    if(mode == "tcp"){
+        if (send(sockfd, "BYE", 3, 0) < 0) {
+            perror("UNABLE TO SEND MESSAGE");
+            exit(-1);
+        }
+    }
+
     close(sockfd);
-    printf("Exit");
+
     exit(0);
 }
 
@@ -172,7 +182,7 @@ void udp(const std::string &hostname, int port) {
 int main(int argc, char *argv[]) {
 
     int opt, port;
-    std::string mode, host;
+    std::string host;
     // std::cout<< argc;
     if (argc != 7) {
         std::cout << "Invalid number of arguments\nUsage: ipkcpc -h <host> -p <port> -m <mode>";
